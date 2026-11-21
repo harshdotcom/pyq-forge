@@ -48,18 +48,46 @@ def _engines_from_args(a) -> list:
 
 # ---------------------------------------------------------------- commands
 def cmd_doctor(a) -> int:
-    ok_all = True
-    for name in ENGINES:
+    check_names = [a.engine] if getattr(a, "engine", "auto") != "auto" else list(ENGINES)
+    authenticated: list[str] = []
+    available: list[str] = []
+
+    for name in check_names:
         eng = build_engine(name)
-        ok, msg = eng.doctor()
-        ok_all &= ok
-        print(f"[{'OK' if ok else 'FAIL'}] {name}: {msg}")
+        if not eng.available():
+            _, msg = eng.doctor()
+            print(f"[MISSING] {name}: {msg}")
+            continue
+
+        available.append(name)
+        try:
+            ok, msg = eng.doctor()
+        except Exception as e:
+            ok, msg = False, str(e)
+
+        if ok:
+            authenticated.append(name)
+            print(f"[OK] {name}: {msg}")
+        else:
+            print(f"[FAIL] {name}: {msg}")
+
     import os
     for k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "CODEX_API_KEY"):
         if os.environ.get(k):
             print(f"[note] {k} is set in your shell; pyqforge strips it from the CLI subprocess "
                   f"so the subscription login is used.")
-    return 0 if ok_all else 1
+
+    if authenticated:
+        if len(authenticated) > 1:
+            print(f"\nDoctor check passed: {len(authenticated)} providers available and authenticated "
+                  f"({', '.join(authenticated)}). Either can be used.")
+        else:
+            print(f"\nDoctor check passed: {authenticated[0]} is available and authenticated.")
+        return 0
+    else:
+        print("\nDoctor check failed: no provider is available and authenticated. "
+              "Please install and log in to at least one (Claude or Codex).")
+        return 1
 
 
 def cmd_inspect(a) -> int:
@@ -213,7 +241,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--version", action="version", version=__version__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("doctor", help="check claude/codex CLIs are installed and subscription-logged-in")
+    sp = sub.add_parser("doctor", help="check claude/codex CLIs are installed and subscription-logged-in")
+    sp.add_argument("--engine", choices=["claude", "codex", "auto"], default="auto",
+                    help="provider/engine to check (default: auto, checks all)")
 
     sp = sub.add_parser("inspect", help="preview figure detection (no LLM, free)")
     sp.add_argument("pdf")

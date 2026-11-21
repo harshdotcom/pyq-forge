@@ -68,6 +68,10 @@ class Engine(abc.ABC):
     def available(self) -> bool:
         return shutil.which(self.binary) is not None
 
+    @property
+    def resolved_binary(self) -> str:
+        return shutil.which(self.binary) or self.binary
+
     @abc.abstractmethod
     def run(self, system_prompt: str, prompt: str, image: Path, schema: dict) -> EngineResult:
         ...

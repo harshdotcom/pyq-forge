@@ -35,7 +35,7 @@ class CodexCLIEngine(Engine):
             schema_path = tdp / "schema.json"
             schema_path.write_text(json.dumps(schema))
             out_path = tdp / "out.json"
-            cmd = [self.binary, "exec",
+            cmd = [self.resolved_binary, "exec",
                    "-i", str(img),
                    "--output-schema", str(schema_path),
                    "-o", str(out_path),
@@ -86,8 +86,14 @@ class CodexCLIEngine(Engine):
     def doctor(self) -> tuple[bool, str]:
         if not self.available():
             return False, "`codex` not found on PATH (npm i -g @openai/codex)"
-        st = subprocess.run([self.binary, "login", "status"], capture_output=True, text=True,
-                            timeout=60, env=self._env())
+        bin_path = self.resolved_binary
+        try:
+            st = subprocess.run([bin_path, "login", "status"], capture_output=True, text=True,
+                                timeout=60, env=self._env())
+        except subprocess.TimeoutExpired:
+            return False, "codex did not answer within 60s"
+        except OSError as e:
+            return False, f"error running codex: {e}"
         msg = (st.stdout + st.stderr).strip()
         if st.returncode != 0:
             return False, msg[-500:] or "not logged in; run `codex login`"

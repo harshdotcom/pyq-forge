@@ -228,6 +228,10 @@ _ENGINE_CACHE: dict = {"t": 0.0, "data": None}
 
 def _run(cmd: list[str], timeout: int = 20) -> tuple[int, str]:
     try:
+        if cmd:
+            resolved = shutil.which(cmd[0])
+            if resolved:
+                cmd = [resolved] + cmd[1:]
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return p.returncode, (p.stdout + p.stderr).strip()
     except (OSError, subprocess.TimeoutExpired) as e:

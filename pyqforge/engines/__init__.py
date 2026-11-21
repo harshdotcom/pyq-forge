@@ -12,7 +12,12 @@ from .codex_cli import CodexCLIEngine
 ENGINES: dict[str, type[Engine]] = {"claude": ClaudeCLIEngine, "codex": CodexCLIEngine}
 
 __all__ = ["ENGINES", "Engine", "EngineError", "EngineResult", "EnginePool", "NotLoggedIn",
-           "RateLimited", "Usage", "build_engine"]
+           "RateLimited", "Usage", "build_engine", "detect_available_engines"]
+
+
+def detect_available_engines() -> list[str]:
+    """Return names of engines whose CLIs are installed on PATH."""
+    return [name for name, cls in ENGINES.items() if cls().available()]
 
 
 def build_engine(name: str, model: str | None = None, effort: str | None = None,
