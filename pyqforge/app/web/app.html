@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pyq·forge</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=zodiak@400,401&f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<style>
+/* ---------- tokens: paper, ink, one red pencil ---------- */
+:root {
+  --font-display: "Zodiak", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Switzer", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --bg: #f3f2ee; --bg-mid: #e8e6e0; --surface: #faf9f6; --raised: #ffffff; --hover: #eae8e2;
+  --ink: #16150f; --ink-muted: #55534a; --ink-subtle: #6f6c63; --ink-faint: #bbb8ae;
+  --rule: rgba(22,21,15,.14); --border-warm: rgba(22,21,15,.34);
+  --accent: #b7361c; --accent-soft: rgba(183,54,28,.10); --accent-fg: #fff;
+  /* status (reserved; always paired with a label) */
+  --ok: #2f7d4f; --ok-soft: rgba(47,125,79,.12);
+  --warn: #b26a00; --warn-soft: rgba(178,106,0,.13);
+  --bad: #b3261e; --bad-soft: rgba(179,38,30,.11);
+  --none: #dcd9d1;
+  --radius: 8px; --page-max: 1240px; --gutter: clamp(16px, 3.4vw, 44px);
+  --shadow: 0 8px 22px rgba(22,21,15,.09);
+}
+:root[data-theme="dark"] {
+  --bg: #121210; --bg-mid: #1c1c19; --surface: #191917; --raised: #232320; --hover: #2b2b27;
+  --ink: #eceae2; --ink-muted: #b5b2a7; --ink-subtle: #918e84; --ink-faint: #4b4a44;
+  --rule: rgba(236,234,226,.15); --border-warm: rgba(236,234,226,.36);
+  --accent: #f0764f; --accent-soft: rgba(240,118,79,.14); --accent-fg: #1c0e08;
+  --ok: #5cc28a; --ok-soft: rgba(92,194,138,.14);
+  --warn: #e7a446; --warn-soft: rgba(231,164,70,.15);
+  --bad: #f07b72; --bad-soft: rgba(240,123,114,.14);
+  --none: #34332f; --shadow: 0 8px 22px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121210; --bg-mid: #1c1c19; --surface: #191917; --raised: #232320; --hover: #2b2b27;
+    --ink: #eceae2; --ink-muted: #b5b2a7; --ink-subtle: #918e84; --ink-faint: #4b4a44;
+    --rule: rgba(236,234,226,.15); --border-warm: rgba(236,234,226,.36);
+    --accent: #f0764f; --accent-soft: rgba(240,118,79,.14); --accent-fg: #1c0e08;
+    --ok: #5cc28a; --ok-soft: rgba(92,194,138,.14);
+    --warn: #e7a446; --warn-soft: rgba(231,164,70,.15);
+    --bad: #f07b72; --bad-soft: rgba(240,123,114,.14);
+    --none: #34332f; --shadow: 0 8px 22px rgba(0,0,0,.35);
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 15.5px/1.55 var(--font-sans);
+       -webkit-font-smoothing: antialiased; min-height: 100vh; overflow-x: clip; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+::selection { background: var(--ink); color: var(--bg); }
+code, .mono { font-family: var(--font-mono); font-size: .86em; }
+
+/* ---------- masthead ---------- */
+.app-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); }
+.header-inner { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gutter); height: 60px;
+  display: flex; align-items: center; gap: 22px; }
+.brand { font-family: var(--font-display); font-size: 22px; letter-spacing: -.01em; white-space: nowrap; }
+.brand em { color: var(--accent); font-style: normal; }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs a { padding: 6px 12px; border-radius: 999px; color: var(--ink-muted); font-size: 14.5px; white-space: nowrap; }
+nav.tabs a:hover { color: var(--ink); background: var(--hover); }
+nav.tabs a.on { color: var(--ink); background: var(--raised); box-shadow: inset 0 0 0 1px var(--rule); }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.agent-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-muted);
+  padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); display: inline-block; flex: none; }
+.dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.busy { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--raised); color: var(--ink-muted); }
+.icon-btn:hover { color: var(--ink); border-color: var(--border-warm); }
+
+/* ---------- page ---------- */
+main { max-width: var(--page-max); margin: 0 auto; padding: 34px var(--gutter) 90px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-subtle); }
+h1.display { font-family: var(--font-display); font-weight: 400; font-size: clamp(34px, 5vw, 54px);
+  line-height: 1.04; letter-spacing: -.02em; margin: 8px 0 10px; }
+h1.display em { font-style: italic; color: var(--accent); }
+.lede { color: var(--ink-muted); max-width: 64ch; font-size: 16.5px; }
+h2.section { font-family: var(--font-display); font-weight: 400; font-size: 26px; letter-spacing: -.01em;
+  margin: 44px 0 14px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2.section .count { font-family: var(--font-sans); font-size: 13px; color: var(--ink-subtle); }
+h2.section .act { margin-left: auto; font-family: var(--font-sans); }
+h2.section select.act { width: auto; max-width: 100%; font-size: 14px; padding: 6px 10px; }
+.rule { border: 0; border-top: 1px solid var(--rule); margin: 26px 0; }
+.muted { color: var(--ink-muted); } .subtle { color: var(--ink-subtle); font-size: 13.5px; }
+
+/* stat strip */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule); margin-top: 26px; }
+.stat { padding: 16px 18px 18px 0; }
+.stat + .stat { padding-left: 18px; border-left: 1px solid var(--rule); }
+.stat .k { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-subtle); }
+.stat .v { font-family: var(--font-display); font-size: 34px; line-height: 1.1; margin-top: 6px; letter-spacing: -.01em; }
+.stat .v small { font-family: var(--font-sans); font-size: 14px; color: var(--ink-subtle); margin-left: 4px; }
+.stat .s { font-size: 13px; color: var(--ink-subtle); margin-top: 2px; }
+.meter { height: 4px; background: var(--bg-mid); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+.meter > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .5s ease; }
+.meter.ok > i { background: var(--ok); }
+
+/* cards + grids */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.card { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 20px; }
+.card h3 { font-family: var(--font-display); font-weight: 400; font-size: 21px; display: flex; align-items: center; gap: 10px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin-top: 12px; font-size: 14px; }
+.kv dt { color: var(--ink-subtle); } .kv dd { min-width: 0; overflow-wrap: anywhere; }
+
+/* chips */
+.chip { font-family: var(--font-sans); display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 2px 9px;
+  border-radius: 999px; background: var(--bg-mid); color: var(--ink-muted); white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
+.chip.plain::before { display: none; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip.run { background: var(--accent-soft); color: var(--accent); }
+.chip.run::before { animation: pulse 1.4s ease-in-out infinite; }
+
+/* buttons + inputs */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px;
+  border-radius: 6px; border: 1px solid var(--border-warm); background: var(--raised); font-weight: 500; font-size: 14.5px; white-space: nowrap; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.input, select.input, textarea.input { width: 100%; padding: 9px 12px; border: 1px solid var(--border-warm);
+  border-radius: 6px; background: var(--surface); }
+.input:focus { outline: none; border-color: var(--ink); }
+label.f { display: block; font-size: 13px; color: var(--ink-subtle); margin-bottom: 6px; }
+.field { margin-bottom: 16px; }
+.hint { font-size: 12.5px; color: var(--ink-subtle); margin-top: 6px; }
+.seg { display: inline-flex; border: 1px solid var(--border-warm); border-radius: 7px; overflow: hidden; flex-wrap: wrap; }
+.seg button { padding: 7px 14px; font-size: 14px; color: var(--ink-muted); border-right: 1px solid var(--rule); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--ink); color: var(--bg); }
+.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14.5px; }
+.toggle input { appearance: none; width: 36px; height: 20px; border-radius: 99px; background: var(--bg-mid);
+  border: 1px solid var(--border-warm); position: relative; cursor: pointer; transition: background .2s; flex: none; }
+.toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--ink-subtle); transition: transform .2s, background .2s; }
+.toggle input:checked { background: var(--ink); border-color: var(--ink); }
+.toggle input:checked::after { transform: translateX(16px); background: var(--bg); }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* tables */
+.table-wrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.t th { text-align: left; font-weight: 500; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-subtle); padding: 10px 12px 8px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.t td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+table.t tr.click { cursor: pointer; } table.t tr.click:hover td { background: var(--hover); }
+table.t td.num, table.t th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.empty { padding: 36px 0; color: var(--ink-subtle); text-align: center; }
+
+/* library */
+.drop { border: 1.5px dashed var(--border-warm); border-radius: 10px; padding: 34px 20px; text-align: center;
+  background: var(--surface); transition: border-color .2s, background .2s; cursor: pointer; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop .big { font-family: var(--font-display); font-size: 24px; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--ink-subtle); font-size: 13px; margin: 18px 0; }
+.or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--rule); }
+.paste-row { display: flex; gap: 10px; flex-wrap: wrap; } .paste-row .input { flex: 1; min-width: 220px; }
+.upload-status { margin-top: 14px; font-size: 14px; }
+.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.book { display: flex; gap: 14px; padding: 14px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); cursor: pointer; transition: border-color .2s, transform .2s; min-width: 0; }
+.book:hover { border-color: var(--border-warm); transform: translateY(-1px); }
+.book img { width: 70px; height: 96px; object-fit: cover; object-position: top; border: 1px solid var(--rule); border-radius: 3px; background: #fff; flex: none; }
+.book .bt { font-family: var(--font-display); font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.book .bm { font-size: 12.5px; color: var(--ink-subtle); margin-top: 4px; }
+
+/* book page */
+.book-head { display: grid; grid-template-columns: 120px 1fr; gap: 24px; align-items: start; }
+.book-head img { width: 120px; border: 1px solid var(--rule); border-radius: 4px; background: #fff; box-shadow: var(--shadow); }
+.pagemap { display: grid; grid-template-columns: repeat(auto-fill, minmax(14px, 1fr)); gap: 3px; margin-top: 12px; }
+.pagemap i { aspect-ratio: 1; border-radius: 2px; background: var(--none); cursor: pointer; }
+.pagemap i:hover { outline: 2px solid var(--ink); outline-offset: 1px; }
+.pagemap i.ok { background: var(--ok); } .pagemap i.review { background: var(--warn); } .pagemap i.error { background: var(--bad); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; background: var(--none); }
+.legend i.ok { background: var(--ok); } .legend i.review { background: var(--warn); } .legend i.error { background: var(--bad); }
+.run-form { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 24px; }
+.estimate { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 20px; align-self: start; position: sticky; top: 76px; }
+.estimate .v { font-family: var(--font-display); font-size: 30px; }
+details.adv summary { cursor: pointer; color: var(--ink-muted); font-size: 14px; margin: 4px 0 14px; }
+.cols3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 14px; }
+#tip { position: fixed; z-index: 60; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px;
+  padding: 6px 9px; border-radius: 5px; max-width: 260px; display: none; box-shadow: var(--shadow); }
+
+/* run page */
+.bar { height: 10px; background: var(--bg-mid); border-radius: 99px; overflow: hidden; display: flex; margin: 14px 0 8px; }
+.bar i { display: block; height: 100%; } .bar i.ok { background: var(--ok); } .bar i.review { background: var(--warn); }
+.bar i.error { background: var(--bad); } .bar i.cached { background: var(--ink-faint); }
+pre.log { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px;
+  font: 12.5px/1.6 var(--font-mono); max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--ink-muted); }
+
+/* review */
+.rvgrid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0; border-top: 1px solid var(--ink); min-height: 70vh; }
+.qlist { border-right: 1px solid var(--rule); max-height: 78vh; overflow-y: auto; }
+.qlist .li { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.qlist .li:hover { background: var(--hover); } .qlist .li.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+.qlist .top { display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+.qlist .snip { color: var(--ink-subtle); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qlist .ch { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-subtle); padding: 12px 14px 6px 0; border-bottom: 1px solid var(--rule); }
+.qdetail { padding: 6px 0 40px 28px; min-width: 0; }
+.qdetail h3 { font-family: var(--font-display); font-weight: 400; font-size: 28px; margin: 8px 0 10px; }
+.qtext p { margin: 0 0 .55em; } .qtext table { border-collapse: collapse; margin: 8px 0; } .qtext td, .qtext th { border: 1px solid var(--rule); padding: 3px 10px; }
+.figs { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.fig { border: 1px solid var(--rule); border-radius: 6px; padding: 6px; background: #fff; }
+.fig img { display: block; max-width: 100%; max-height: 300px; cursor: zoom-in; }
+.opts { list-style: none; display: grid; gap: 7px; margin: 12px 0; }
+.opt { display: flex; gap: 12px; padding: 9px 14px; border: 1px solid var(--rule); border-radius: 7px; background: var(--raised); }
+.opt b { min-width: 22px; } .opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+.opt .qtext p { margin: 0; } .opt .figs img { max-height: 150px; }
+.sol { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.qnav { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+#zoom { position: fixed; inset: 0; z-index: 70; background: rgba(10,10,8,.78); display: none; align-items: center;
+  justify-content: center; padding: 20px; cursor: zoom-out; }
+#zoom img { max-width: 100%; max-height: 100%; background: #fff; border-radius: 6px; }
+
+/* toast */
+#toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; z-index: 80;
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 14px; transition: all .25s; max-width: calc(100vw - 32px); }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { background: var(--bad); color: #fff; }
+
+@media (max-width: 860px) {
+  .run-form, .rvgrid { grid-template-columns: 1fr; }
+  .estimate { position: static; }
+  .qlist { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--rule); }
+  .qdetail { padding-left: 0; }
+  .book-head { grid-template-columns: 80px 1fr; gap: 16px; } .book-head img { width: 80px; }
+  .header-inner { gap: 12px; } .agents-mini { display: none !important; }
+}
+@media (max-width: 640px) {
+  .stat + .stat { border-left: 0; padding-left: 0; } .stat { border-bottom: 1px solid var(--rule); }
+  table.t .hide-sm { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <a class="brand" href="#overview">pyq<em>·</em>forge</a>
+    <nav class="tabs" id="tabs">
+      <a href="#overview" data-r="overview">Overview</a>
+      <a href="#library" data-r="library">Library</a>
+      <a href="#runs" data-r="runs">Runs</a>
+      <a href="#review" data-r="review">Review</a>
+      <a href="#agents" data-r="agents">Agents</a>
+    </nav>
+    <div class="header-right">
+      <span class="agents-mini" id="agentsMini" style="display:flex;gap:8px"></span>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="view"></main>
+<div id="tip"></div>
+<div id="zoom"><img alt=""></div>
+<div id="toast"></div>
+<input type="file" id="filePick" accept="application/pdf,.pdf" multiple hidden>
+
+<script>
+/* ======================================================================
+   tiny helpers
+   ====================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => (n ?? 0).toLocaleString();
+const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+const bytes = (n) => n > 1e9 ? (n / 1e9).toFixed(2) + " GB" : n > 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.round(n / 1e3) + " KB";
+const dur = (s) => { s = Math.round(s || 0); if (s < 60) return s + "s"; const m = Math.floor(s / 60); if (m < 60) return m + "m " + (s % 60) + "s"; return Math.floor(m / 60) + "h " + (m % 60) + "m"; };
+const ago = (iso) => { if (!iso) return "—"; const s = (Date.now() - new Date(iso)) / 1000; if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + " min ago"; if (s < 86400) return Math.floor(s / 3600) + " h ago"; return new Date(iso).toLocaleDateString(); };
+const runSecs = (r) => r.started_at ? ((r.ended_at ? new Date(r.ended_at) : new Date()) - new Date(r.started_at)) / 1000 : 0;
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: opts.body && !(opts.body instanceof Blob) ? { "Content-Type": "application/json" } : {}, ...opts });
+  const txt = await res.text();
+  let data; try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
+  if (!res.ok) throw new Error((data && data.error) || res.statusText);
+  return data;
+}
+function toast(msg, err = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = "show" + (err ? " err" : "");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = "", err ? 6000 : 3000);
+}
+function statusChip(st) {
+  const m = { done: ["ok", "Done"], partial: ["warn", "Partial"], failed: ["bad", "Failed"], cancelled: ["plain", "Cancelled"],
+              interrupted: ["warn", "Interrupted"], running: ["run", "Running"], queued: ["run", "Queued"] }[st] || ["plain", st];
+  return `<span class="chip ${m[0]}">${m[1]}</span>`;
+}
+const engineLabel = (e) => ({ claude: "Claude", codex: "Codex", auto: "Claude + Codex" }[e] || e || "—");
+function stat(k, v, s = "", meter = null) {
+  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ""}${meter != null ? `<div class="meter ok"><i style="width:${meter}%"></i></div>` : ""}</div>`;
+}
+function tip(el, html) {
+  el.addEventListener("mousemove", e => { const t = $("#tip"); t.innerHTML = typeof html === "function" ? html() : html; t.style.display = "block";
+    t.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px"; t.style.top = (e.clientY + 16) + "px"; });
+  el.addEventListener("mouseleave", () => $("#tip").style.display = "none");
+}
+/** [1,2,3,7,9,10] -> "1-3,7,9-10" */
+function toRanges(nums) {
+  const out = []; let a = null, b = null;
+  for (const n of nums.sort((x, y) => x - y)) { if (a === null) { a = b = n; } else if (n === b + 1) { b = n; } else { out.push(a === b ? `${a}` : `${a}-${b}`); a = b = n; } }
+  if (a !== null) out.push(a === b ? `${a}` : `${a}-${b}`);
+  return out.join(",");
+}
+
+/* ======================================================================
+   theme + router + polling
+   ====================================================================== */
+const root = document.documentElement;
+const savedTheme = store.get("pyq-theme", "");
+if (savedTheme) root.dataset.theme = savedTheme;
+$("#themeBtn").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark"; store.set("pyq-theme", root.dataset.theme);
+};
+
+let pollTimer = null;
+function poll(fn, ms) { clearInterval(pollTimer); pollTimer = fn ? setInterval(fn, ms) : null; }
+
+const routes = { overview: viewOverview, library: viewLibrary, book: viewBook, runs: viewRuns, run: viewRun, review: viewReview, agents: viewAgents };
+async function route() {
+  poll(null);
+  const [name, ...args] = (location.hash.slice(1) || "overview").split("/").map(decodeURIComponent);
+  const fn = routes[name] || viewOverview;
+  $$("#tabs a").forEach(a => a.classList.toggle("on", a.dataset.r === (name === "book" ? "library" : name === "run" ? "runs" : name)));
+  try { await fn(...args); } catch (e) { $("#view").innerHTML = `<div class="empty">Something went wrong: ${esc(e.message)}</div>`; }
+  window.scrollTo({ top: 0 });
+}
+addEventListener("hashchange", route);
+
+/* header agent pills */
+async function refreshAgentsMini() {
+  try {
+    const e = await api("/api/engines");
+    $("#agentsMini").innerHTML = ["claude", "codex"].map(n => {
+      const a = e[n]; const cls = !a.installed || !a.logged_in ? "bad" : a.busy ? "busy" : "ok";
+      return `<a class="agent-pill" href="#agents" title="${esc(a.label)}: ${a.busy ? "running" : a.logged_in ? "signed in" : "not signed in"}"><span class="dot ${cls}"></span>${esc(a.label)}${a.busy ? " · working" : ""}</a>`;
+    }).join("");
+  } catch {}
+}
+
+/* ======================================================================
+   OVERVIEW
+   ====================================================================== */
+async function viewOverview() {
+  const d = await api("/api/overview");
+  const t = d.totals;
+  $("#view").innerHTML = `
+    <div class="eyebrow">Internal · question bank digitiser</div>
+    <h1 class="display">Every question, <em>every figure</em>,<br>linked to its solution.</h1>
+    <p class="lede">Upload a question-bank PDF — scanned or digital — and pyq·forge reads it page by page with your Claude and Codex subscriptions, crops the diagrams, and links each question to its worked solution.</p>
+    <div class="stats">
+      ${stat("Books", fmt(t.books))}
+      ${stat("Pages extracted", `${fmt(t.pages_extracted)}<small>/ ${fmt(t.pages_total)}</small>`, `${pct(t.pages_extracted, t.pages_total)}% of the library`, pct(t.pages_extracted, t.pages_total))}
+      ${stat("Questions", fmt(t.questions), `${pct(t.with_solution, t.questions)}% with a solution`)}
+      ${stat("Figures", fmt(t.figures), `${fmt(t.with_figures)} questions have one`)}
+      ${stat("Flagged", fmt(t.flagged), "to review")}
+      ${stat("Runs", fmt(t.runs), `${fmt(t.calls)} agent calls · ${dur(t.seconds)}`)}
+    </div>
+
+    <h2 class="section">Agents <span class="count">checked ${ago(d.engines.checked_at)}</span><a class="btn small act" href="#agents">Details</a></h2>
+    <div class="grid2">${["claude", "codex"].map(n => agentCard(d.engines[n], true)).join("")}</div>
+
+    <h2 class="section">Running now <span class="count">${d.active_runs.length || "nothing running"}</span></h2>
+    ${d.active_runs.length ? d.active_runs.map(activeRunCard).join("") : `<p class="subtle">No extraction is running. Start one from a book in the <a href="#library" style="text-decoration:underline">Library</a>.</p>`}
+
+    <h2 class="section">Recent runs <a class="btn small act" href="#runs">All runs</a></h2>
+    ${runsTable(d.recent_runs)}
+
+    <h2 class="section">Library <a class="btn small act" href="#library">Add a book</a></h2>
+    ${d.books.length ? `<div class="shelf">${d.books.map(bookCard).join("")}</div>` : `<p class="subtle">No books yet.</p>`}`;
+  bindRows();
+  if (d.active_runs.length) poll(async () => { if (location.hash.startsWith("#overview") || !location.hash) viewOverview(); }, 4000);
+  refreshAgentsMini();
+}
+
+function agentCard(a, compact = false) {
+  if (!a) return "";
+  const ok = a.installed && a.logged_in;
+  const state = !a.installed ? `<span class="chip bad">Not installed</span>` : !a.logged_in ? `<span class="chip bad">Not signed in</span>`
+    : a.busy ? `<span class="chip run">Working · ${a.active_runs.length} run${a.active_runs.length > 1 ? "s" : ""}</span>` : `<span class="chip ok">Ready</span>`;
+  const sub = a.subscription ? `<span class="chip ok">Subscription</span>` : ok ? `<span class="chip warn">Not a subscription login</span>` : "";
+  const rows = a.name === "claude"
+    ? [["Sign-in", a.auth_method === "claude.ai" ? "claude.ai account" : a.auth_method || "—"], ["Plan", a.plan || "subscription"], ["Account", a.account], ["Organisation", a.org], ["Login valid until", a.expires_at ? new Date(a.expires_at).toLocaleDateString() : "—"], ["CLI", a.version]]
+    : [["Sign-in", a.auth_method || "—"], ["Default model", a.default_model || "codex default"], ["Reasoning effort", a.default_effort || "default"], ["CLI", a.version]];
+  const show = compact ? rows.slice(0, 3) : rows;
+  return `<div class="card">
+    <h3><span class="dot ${!ok ? "bad" : a.busy ? "busy" : "ok"}"></span>${esc(a.label)} <span style="margin-left:auto;display:flex;gap:6px">${state}${sub}</span></h3>
+    <dl class="kv">${show.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v || "—")}</dd>`).join("")}
+      ${a.busy ? `<dt>Active</dt><dd>${a.active_runs.map(id => `<a href="#run/${id}" style="text-decoration:underline">${id}</a>`).join(", ")}</dd>` : ""}
+      ${a.api_key_in_env ? `<dt>Note</dt><dd>An API key is set in the server's shell; pyq·forge removes it so the subscription is used.</dd>` : ""}
+    </dl>
+    ${!ok ? `<p class="hint">Fix: run <code>${a.name === "claude" ? "claude, then /login" : "codex login"}</code> in a terminal on this machine.</p>` : ""}
+  </div>`;
+}
+
+function activeRunCard(r) {
+  const live = r.live || { done: 0, total: r.pages_total, pages: [] };
+  const c = { ok: 0, review: 0, error: 0, cached: 0 }; live.pages.forEach(p => c[p.state]++);
+  const tot = live.total || r.pages_total || 1;
+  return `<a class="card" href="#run/${r.id}" style="display:block;margin-bottom:12px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${statusChip(r.status)}<b>${esc(r.book_title || r.book)}</b>
+      <span class="subtle">${engineLabel(r.config.engine)}${r.config.verify ? " · cross-check" : ""} · pages ${esc(r.config.pages || "all")}</span>
+      <span class="subtle" style="margin-left:auto">${live.done} / ${tot} pages · ${dur(runSecs(r))}</span></div>
+    <div class="bar">${["ok", "review", "error", "cached"].map(k => `<i class="${k}" style="width:${100 * c[k] / tot}%"></i>`).join("")}</div>
+  </a>`;
+}
+
+function runsTable(runs, showBook = true) {
+  if (!runs.length) return `<div class="empty">No runs yet.</div>`;
+  return `<div class="table-wrap"><table class="t"><thead><tr>
+    <th>Status</th>${showBook ? "<th>Book</th>" : ""}<th>Agent</th><th class="hide-sm">Pages</th><th class="num">Progress</th>
+    <th class="num hide-sm">Questions</th><th class="num hide-sm">Time</th><th class="hide-sm">Started</th></tr></thead><tbody>
+    ${runs.map(r => { const s = (r.summary || {}).stats || {}; return `<tr class="click" data-href="#run/${r.id}">
+      <td>${statusChip(r.status)}</td>${showBook ? `<td>${esc(r.book_title || r.book)}<div class="subtle">${esc(r.output)}</div></td>` : ""}
+      <td>${engineLabel(r.config.engine)}${r.config.verify ? `<div class="subtle">+ check by ${r.config.verify_engine === "same" ? "same agent" : "other agent"}</div>` : ""}</td>
+      <td class="hide-sm mono">${esc(r.config.pages || "all")}</td>
+      <td class="num">${r.progress.done} / ${r.progress.total}</td>
+      <td class="num hide-sm">${s.questions != null ? fmt(s.questions) : "—"}</td>
+      <td class="num hide-sm">${dur(runSecs(r))}</td><td class="hide-sm subtle">${ago(r.created_at)}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+function bindRows() { $$("tr[data-href]").forEach(tr => tr.onclick = () => location.hash = tr.dataset.href); }
+
+function bookCard(b) {
+  const m = b.book, s = b.stats || {};
+  const last = b.last_run;
+  return `<a class="book" href="#book/${m.slug}">
+    <img src="/api/books/${m.slug}/thumb/1?w=180" alt="" loading="lazy">
+    <div style="min-width:0;flex:1">
+      <div class="bt">${esc(m.title)}</div>
+      <div class="bm">${fmt(m.pages)} pages · ${m.kind} · ${bytes(m.size_bytes)}</div>
+      <div class="meter ok" title="${b.pages_extracted} of ${m.pages} pages extracted"><i style="width:${Math.max(b.coverage * 100, b.pages_extracted ? 1 : 0)}%"></i></div>
+      <div class="bm">${fmt(b.pages_extracted)} / ${fmt(m.pages)} pages extracted · ${fmt(s.questions || 0)} questions</div>
+      ${last ? `<div style="margin-top:6px">${statusChip(last.status)} <span class="subtle">${ago(last.created_at)}</span></div>` : ""}
+    </div></a>`;
+}
+
+/* ======================================================================
+   LIBRARY  (upload / paste link / paste path / paste file)
+   ====================================================================== */
+async function viewLibrary() {
+  const books = await api("/api/books");
+  $("#view").innerHTML = `
+    <div class="eyebrow">Library</div>
+    <h1 class="display">Add a book</h1>
+    <p class="lede">Files are stored on this machine in the workspace folder. Nothing is uploaded anywhere else; extraction runs through the Claude Code and Codex CLIs signed in on this computer.</p>
+    <div class="card" style="margin-top:24px">
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose PDF files">
+        <div class="big">Drop PDF files here</div>
+        <div class="subtle" style="margin-top:6px">or click to choose · scanned and digital PDFs both work · large books are fine</div>
+      </div>
+      <div class="or">or paste</div>
+      <div class="paste-row">
+        <input class="input" id="pasteBox" placeholder="Paste a PDF link (https://…) or a file path on this machine (/home/…/book.pdf)">
+        <button class="btn primary" id="pasteGo">Add</button>
+      </div>
+      <label class="toggle" style="margin-top:10px;font-size:13.5px" title="For local paths: copy the file into the workspace instead of linking to it">
+        <input type="checkbox" id="copyLocal"> Copy local files into the workspace (otherwise linked in place)</label>
+      <p class="hint">Tip: you can also press <code>Ctrl</code>+<code>V</code> anywhere on this page with a copied PDF file, link or path.</p>
+      <div class="upload-status" id="upStatus"></div>
+    </div>
+    <h2 class="section">Books <span class="count">${books.length}</span></h2>
+    ${books.length ? `<div class="table-wrap"><table class="t"><thead><tr><th>Book</th><th class="num">Pages</th><th class="hide-sm">Type</th>
+      <th>Extracted</th><th class="num hide-sm">Questions</th><th class="num hide-sm">Flagged</th><th class="hide-sm">Last run</th><th class="hide-sm">Added</th></tr></thead><tbody>
+      ${books.map(b => { const m = b.book, s = b.stats || {}; return `<tr class="click" data-href="#book/${m.slug}">
+        <td><div style="display:flex;gap:12px;align-items:center"><img src="/api/books/${m.slug}/thumb/1?w=120" alt="" style="width:34px;height:46px;object-fit:cover;object-position:top;border:1px solid var(--rule);border-radius:2px;background:#fff">
+          <div><div style="font-weight:500">${esc(m.title)}</div><div class="subtle">${esc(m.original_name)} · ${bytes(m.size_bytes)} · ${esc(m.source)}</div></div></div></td>
+        <td class="num">${fmt(m.pages)}</td><td class="hide-sm">${m.kind}</td>
+        <td style="min-width:140px">${fmt(b.pages_extracted)} / ${fmt(m.pages)} <span class="subtle">(${Math.round(b.coverage * 100)}%)</span><div class="meter ok"><i style="width:${b.coverage * 100}%"></i></div></td>
+        <td class="num hide-sm">${fmt(s.questions || 0)}</td><td class="num hide-sm">${fmt(s.flagged || 0)}</td>
+        <td class="hide-sm">${b.last_run ? statusChip(b.last_run.status) : `<span class="subtle">never</span>`}</td>
+        <td class="hide-sm subtle">${ago(m.added_at)}</td></tr>`; }).join("")}</tbody></table></div>`
+      : `<div class="empty">No books yet — add your first PDF above.</div>`}`;
+  bindRows();
+  const drop = $("#drop");
+  drop.onclick = () => $("#filePick").click();
+  drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#filePick").click(); } };
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => uploadFiles([...e.dataTransfer.files]));
+  $("#pasteGo").onclick = () => importText($("#pasteBox").value);
+  $("#pasteBox").onkeydown = (e) => { if (e.key === "Enter") importText($("#pasteBox").value); };
+}
+$("#filePick").onchange = (e) => { uploadFiles([...e.target.files]); e.target.value = ""; };
+
+document.addEventListener("paste", (e) => {
+  if (!location.hash.startsWith("#library")) return;
+  const files = [...(e.clipboardData?.files || [])].filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+  if (files.length) { e.preventDefault(); return uploadFiles(files); }
+  if (e.target.id === "pasteBox") return;  // normal paste into the box
+  const text = e.clipboardData?.getData("text")?.trim();
+  if (text && (/^https?:\/\//i.test(text) || /\.pdf$/i.test(text))) { e.preventDefault(); $("#pasteBox").value = text; importText(text); }
+});
+
+function setUp(html) { const el = $("#upStatus"); if (el) el.innerHTML = html; }
+
+function uploadFiles(files) {
+  const pdfs = files.filter(f => /\.pdf$/i.test(f.name) || f.type === "application/pdf");
+  if (!pdfs.length) return toast("Only PDF files can be added", true);
+  let i = 0;
+  const next = () => {
+    if (i >= pdfs.length) { toast(`${pdfs.length} book${pdfs.length > 1 ? "s" : ""} added`); return viewLibrary(); }
+    const f = pdfs[i++];
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/books/upload");
+    xhr.setRequestHeader("X-Filename", encodeURIComponent(f.name));
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) setUp(`<b>${esc(f.name)}</b> — uploading ${pct(e.loaded, e.total)}% of ${bytes(e.total)}<div class="meter"><i style="width:${pct(e.loaded, e.total)}%"></i></div>`); };
+    xhr.upload.onload = () => setUp(`<b>${esc(f.name)}</b> — reading pages…`);
+    xhr.onload = () => {
+      let d = {}; try { d = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status >= 300) { setUp(""); toast(`${f.name}: ${d.error || xhr.statusText}`, true); return next(); }
+      setUp(`<span class="chip ok">Added</span> <b>${esc(d.title)}</b> · ${fmt(d.pages)} pages · ${d.kind}`); next();
+    };
+    xhr.onerror = () => { toast(`${f.name}: upload failed`, true); next(); };
+    xhr.send(f);
+  };
+  next();
+}
+
+async function importText(text) {
+  text = (text || "").trim();
+  if (!text) return;
+  const isUrl = /^https?:\/\//i.test(text);
+  setUp(isUrl ? `Downloading <b>${esc(text)}</b>…` : `Importing <b>${esc(text)}</b>…`);
+  try {
+    const d = await api("/api/books/import", { method: "POST", body: JSON.stringify(isUrl ? { url: text } : { path: text, copy: $("#copyLocal")?.checked }) });
+    toast(`Added “${d.title}” (${d.pages} pages)`);
+    location.hash = `#book/${d.slug}`;
+  } catch (e) { setUp(""); toast(e.message, true); }
+}
+
+/* ======================================================================
+   BOOK
+   ====================================================================== */
+let bookState = null;
+async function viewBook(slug, output) {
+  const d = await api(`/api/books/${encodeURIComponent(slug)}`);
+  const m = d.book, s = d.stats || {};
+  const out = output || d.primary_output || null;
+  bookState = { slug, d, out, states: {} };
+  $("#view").innerHTML = `
+    <div class="book-head">
+      <img src="/api/books/${slug}/thumb/1?w=300" alt="cover">
+      <div>
+        <div class="eyebrow"><a href="#library">Library</a> / book</div>
+        <h1 class="display" style="font-size:clamp(28px,4vw,44px)">${esc(m.title)}</h1>
+        <div class="subtle">${esc(m.original_name)} · ${fmt(m.pages)} pages · ${m.kind} · ${bytes(m.size_bytes)} · added ${ago(m.added_at)} · source: ${esc(m.source)}${m.url ? ` (<a href="${esc(m.url)}" target="_blank" rel="noopener" style="text-decoration:underline">link</a>)` : ""}</div>
+        <div class="quick" style="margin-top:14px">
+          <a class="btn primary" href="#book/${slug}" onclick="event.preventDefault();document.getElementById('newrun').scrollIntoView({behavior:'smooth'})">New extraction</a>
+          ${out && d.outputs.find(o => o.output === out)?.has_questions ? `<a class="btn" href="#review/${out}">Review questions</a><a class="btn" href="/api/outputs/${out}/questions" download="${out}.json">Download JSON</a>` : ""}
+          <a class="btn" href="/api/books/${slug}/pdf" target="_blank" rel="noopener">Open PDF</a>
+          <button class="btn danger" id="delBook">Delete</button>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      ${stat("Pages extracted", `${fmt(d.pages_extracted)}<small>/ ${fmt(m.pages)}</small>`, `${(d.coverage * 100).toFixed(1)}% of the book`, d.coverage * 100)}
+      ${stat("Questions", fmt(s.questions || 0), s.questions ? `${pct(s.with_solution, s.questions)}% with a solution` : "")}
+      ${stat("Figures", fmt(s.figures_cropped || 0), s.questions ? `${fmt(s.with_figures)} questions have one` : "")}
+      ${stat("Flagged", fmt(s.flagged || 0), s.orphan_solutions ? `${s.orphan_solutions} unmatched solutions` : "to review")}
+      ${stat("Agent usage", fmt(d.usage.calls) + "<small>calls</small>", `${fmt(Math.round(d.usage.input_tokens / 1000))}K in · ${fmt(Math.round(d.usage.output_tokens / 1000))}K out · ${dur(d.usage.seconds)}`)}
+      ${stat("Runs", fmt(d.runs), d.last_run ? `last ${ago(d.last_run.created_at)}` : "none yet")}
+    </div>
+
+    <h2 class="section">Page map
+      ${d.outputs.length > 1 ? `<select class="input act" id="outSel" style="width:auto">${d.outputs.map(o => `<option ${o.output === out ? "selected" : ""} value="${o.output}">${o.output}</option>`).join("")}</select>` : `<span class="count">${out ? esc(out) : "nothing extracted yet"}</span>`}</h2>
+    <div class="legend"><span><i class="ok"></i>Extracted</span><span><i class="review"></i>Extracted, needs review</span><span><i class="error"></i>Failed</span><span><i></i>Not extracted</span>
+      <span class="subtle" id="pmSummary" style="margin-left:auto"></span></div>
+    <div class="pagemap" id="pagemap" aria-label="Page map"></div>
+    <div id="pagePreview"></div>
+
+    <h2 class="section" id="newrun">New extraction</h2>
+    ${runForm(m)}
+
+    <h2 class="section">Outputs <span class="count">${d.outputs.length}</span></h2>
+    ${d.outputs.length ? `<div class="table-wrap"><table class="t"><thead><tr><th>Output</th><th>Agents</th><th class="num">Pages</th><th class="num">Questions</th><th class="num hide-sm">With solution</th><th class="num hide-sm">Flagged</th><th class="hide-sm">Updated</th><th></th></tr></thead><tbody>
+      ${d.outputs.map(o => `<tr><td class="mono">${esc(o.output)}</td><td>${o.engines.map(engineLabel).join(", ") || "—"}</td>
+        <td class="num">${fmt(o.pages_extracted)}${o.pages_failed ? ` <span class="chip bad">${o.pages_failed} failed</span>` : ""}</td>
+        <td class="num">${fmt(o.stats.questions || 0)}</td><td class="num hide-sm">${fmt(o.stats.with_solution || 0)}</td><td class="num hide-sm">${fmt(o.stats.flagged || 0)}</td>
+        <td class="hide-sm subtle">${ago(o.updated_at)}</td>
+        <td style="text-align:right;white-space:nowrap">${o.has_questions ? `<a class="btn small" href="#review/${o.output}">Review</a> <a class="btn small" href="/api/outputs/${o.output}/questions" download="${o.output}.json">JSON</a>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">Run an extraction to create the first output.</div>`}
+
+    <h2 class="section">Runs for this book <span class="count">${d.run_list.length}</span></h2>
+    ${runsTable(d.run_list, false)}`;
+  bindRows();
+  $("#delBook").onclick = async () => {
+    if (!confirm(`Delete “${m.title}” and all its extraction outputs from the workspace? This cannot be undone.`)) return;
+    try { await api(`/api/books/${slug}`, { method: "DELETE" }); toast("Book deleted"); location.hash = "#library"; } catch (e) { toast(e.message, true); }
+  };
+  if ($("#outSel")) $("#outSel").onchange = (e) => location.hash = `#book/${slug}/${e.target.value}`;
+  await loadPageMap();
+  bindRunForm();
+  if (d.run_list.some(r => r.status === "running")) poll(() => location.hash.startsWith(`#book/${slug}`) && loadPageMap(), 5000);
+}
+
+async function loadPageMap() {
+  const { slug, out } = bookState;
+  const pm = await api(`/api/books/${slug}/pages${out ? `?output=${encodeURIComponent(out)}` : ""}`);
+  bookState.states = pm.states; bookState.total = pm.pages;
+  const el = $("#pagemap"); if (!el) return;
+  let html = ""; const c = { ok: 0, review: 0, error: 0 };
+  for (let n = 1; n <= pm.pages; n++) { const st = pm.states[n]; if (st) c[st.state]++; html += `<i data-p="${n}" class="${st ? st.state : ""}"></i>`; }
+  el.innerHTML = html;
+  $("#pmSummary").textContent = `${c.ok + c.review} extracted · ${c.review} need review · ${c.error} failed · ${pm.pages - c.ok - c.review - c.error} not extracted`;
+  el.onmousemove = (e) => {
+    const n = +e.target.dataset?.p; const t = $("#tip"); if (!n) { t.style.display = "none"; return; }
+    const st = pm.states[n];
+    t.innerHTML = `<b>Page ${n}</b><br>${st ? `${{ ok: "Extracted", review: "Needs review", error: "Failed" }[st.state]} · ${st.type || ""}${st.items ? ` · ${st.items} items` : ""}<br>${engineLabel(st.engine)}${st.verified_by ? ` + check by ${engineLabel(st.verified_by)}` : ""}${st.error ? `<br>${esc(st.error)}` : ""}` : "Not extracted"}`;
+    t.style.display = "block"; t.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px"; t.style.top = (e.clientY + 16) + "px";
+  };
+  el.onmouseleave = () => $("#tip").style.display = "none";
+  el.onclick = (e) => { const n = +e.target.dataset?.p; if (n) previewPage(n); };
+}
+
+function previewPage(n) {
+  const { slug, out, states } = bookState; const st = states[n];
+  $("#pagePreview").innerHTML = `<div class="card" style="margin-top:16px;display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:20px">
+    <img src="${st && out ? `/static/${out}/_work/llm_images/p${String(n).padStart(4, "0")}.jpg` : `/api/books/${slug}/thumb/${n}?w=640`}" alt="page ${n}" style="width:100%;border:1px solid var(--rule);border-radius:4px;background:#fff;cursor:zoom-in" onclick="zoom(this.src)">
+    <div><h3>Page ${n}</h3>
+      <p class="subtle" style="margin:6px 0 12px">${st ? `${{ ok: "Extracted", review: "Extracted — needs review", error: "Failed" }[st.state]} · ${st.type || "?"} page · ${st.items} items · ${engineLabel(st.engine)}${st.verified_by ? ` + checked by ${engineLabel(st.verified_by)}` : ""}` : "Not extracted yet."}
+      ${st && st.error ? `<br>${esc(st.error)}` : ""}</p>
+      ${st ? `<p class="subtle">Coloured boxes are the figure candidates the agent saw.</p>` : ""}
+      <div class="quick"><button class="btn small" onclick="setPages('${n}')">Extract just this page</button>
+      <button class="btn small" onclick="setPages('${Math.max(1, n - 5)}-${n + 5}')">Pages ${Math.max(1, n - 5)}–${n + 5}</button>
+      <button class="btn small" onclick="document.getElementById('pagePreview').innerHTML=''">Close</button></div></div></div>`;
+}
+
+function runForm(m) {
+  const last = JSON.parse(store.get("pyq-runcfg", "{}"));
+  return `<div class="run-form"><div class="card">
+    <div class="field"><label class="f" for="rfPages">Pages</label>
+      <input class="input mono" id="rfPages" placeholder="all ${m.pages} pages — or e.g. 20-40, 55, 80-120" value="">
+      <div class="quick">
+        <button class="btn small" data-pages="">All pages</button>
+        <button class="btn small" data-pages="__missing">Not yet extracted</button>
+        <button class="btn small" data-pages="__failed">Failed pages</button>
+        <button class="btn small" data-pages="__review">Needs review</button>
+        <button class="btn small" data-pages="1-10">First 10 (pilot)</button>
+      </div></div>
+    <div class="field"><label class="f">Agent</label>
+      <div class="seg" id="rfEngine">
+        <button data-v="claude">Claude</button><button data-v="codex">Codex</button><button data-v="auto">Both · split pages</button>
+      </div>
+      <div class="hint" id="engineHint"></div></div>
+    <div class="field">
+      <label class="toggle"><input type="checkbox" id="rfVerify" ${last.verify !== false ? "checked" : ""}> Cross-check doubtful pages</label>
+      <div id="verifyBy" style="margin:10px 0 0 46px"><div class="seg" id="rfVerifyEngine"><button data-v="other">by the other agent</button><button data-v="same">by the same agent</button></div></div>
+    </div>
+    <details class="adv"><summary>Advanced settings</summary>
+      <div class="cols3">
+        <div class="field"><label class="f" for="rfClaudeModel">Claude model</label>
+          <select class="input" id="rfClaudeModel"><option value="sonnet">Sonnet (fast, default)</option><option value="opus">Opus (most accurate)</option><option value="haiku">Haiku (cheapest)</option></select></div>
+        <div class="field"><label class="f" for="rfCodexModel">Codex model</label><input class="input" id="rfCodexModel" placeholder="codex default"></div>
+        <div class="field"><label class="f" for="rfEffort">Reasoning effort</label>
+          <select class="input" id="rfEffort"><option value="">CLI default</option><option>low</option><option>medium</option><option>high</option></select></div>
+        <div class="field"><label class="f" for="rfWorkers">Pages in parallel</label><input class="input" id="rfWorkers" type="number" min="1" max="8" value="${last.workers || 3}"></div>
+        <div class="field"><label class="f" for="rfVariant">Output name</label><input class="input mono" id="rfVariant" placeholder="${m.slug}" title="Leave empty for the main output; e.g. 'codex' writes to ${m.slug}--codex"><div class="hint">empty = main output · e.g. <code>codex</code> keeps a separate copy</div></div>
+        <div class="field" style="align-self:center"><label class="toggle"><input type="checkbox" id="rfForce"> Re-do pages already extracted</label></div>
+      </div>
+    </details>
+    <button class="btn primary" id="rfStart" style="width:100%;padding:11px">Start extraction</button>
+  </div>
+  <aside class="estimate" id="estimate"><div class="eyebrow">Estimate</div><div class="subtle">Pick pages to see an estimate.</div></aside></div>`;
+}
+
+function setPages(v) { const el = $("#rfPages"); if (el) { el.value = v; el.dispatchEvent(new Event("input")); el.scrollIntoView({ behavior: "smooth", block: "center" }); } }
+
+function bindRunForm() {
+  const last = JSON.parse(store.get("pyq-runcfg", "{}"));
+  const segVal = (id, v) => { $$(`#${id} button`).forEach(b => b.classList.toggle("on", b.dataset.v === v)); };
+  const getSeg = (id) => $(`#${id} button.on`)?.dataset.v;
+  segVal("rfEngine", last.engine || "claude"); segVal("rfVerifyEngine", last.verify_engine || "other");
+  if (last.claude_model) $("#rfClaudeModel").value = last.claude_model;
+  ["rfEngine", "rfVerifyEngine"].forEach(id => $$(`#${id} button`).forEach(b => b.onclick = () => { segVal(id, b.dataset.v); update(); }));
+  $$("[data-pages]").forEach(b => b.onclick = () => {
+    const st = bookState.states, total = bookState.total || bookState.d.book.pages; let v = b.dataset.pages;
+    if (v === "__missing") { const miss = []; for (let n = 1; n <= total; n++) if (!st[n] || st[n].state === "error") miss.push(n); v = toRanges(miss); if (!v) return toast("Every page is already extracted"); }
+    if (v === "__failed") { v = toRanges(Object.keys(st).filter(k => st[k].state === "error").map(Number)); if (!v) return toast("No failed pages"); $("#rfForce").checked = true; }
+    if (v === "__review") { v = toRanges(Object.keys(st).filter(k => st[k].state === "review").map(Number)); if (!v) return toast("No pages need review"); $("#rfForce").checked = true; }
+    setPages(v);
+  });
+  const cfg = () => ({
+    book: bookState.slug, pages: $("#rfPages").value.trim(), engine: getSeg("rfEngine"),
+    verify: $("#rfVerify").checked, verify_engine: getSeg("rfVerifyEngine"),
+    claude_model: $("#rfClaudeModel").value, codex_model: $("#rfCodexModel").value.trim(),
+    claude_effort: $("#rfEffort").value, codex_effort: $("#rfEffort").value,
+    workers: +$("#rfWorkers").value || 3, variant: $("#rfVariant").value.trim(), force: $("#rfForce").checked,
+  });
+  let t = null;
+  const update = () => {
+    const c = cfg();
+    $("#verifyBy").hidden = !c.verify;
+    $("#engineHint").textContent = { claude: "Uses your Claude subscription through the claude CLI.", codex: "Uses your ChatGPT subscription through the codex CLI.", auto: "Pages are shared between both subscriptions; if one hits its usage limit the other carries on." }[c.engine];
+    clearTimeout(t); t = setTimeout(async () => {
+      try {
+        const e = await api("/api/estimate", { method: "POST", body: JSON.stringify(c) });
+        const out = c.variant ? `${bookState.slug}--${c.variant.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : bookState.slug;
+        $("#estimate").innerHTML = `<div class="eyebrow">Estimate</div>
+          <div class="v">${dur(e.seconds)}</div><div class="subtle">${fmt(e.pages)} page${e.pages === 1 ? "" : "s"} to extract${e.reused ? ` · ${fmt(e.reused)} already done, reused` : ""} · ${c.workers} in parallel</div>
+          <hr class="rule" style="margin:14px 0">
+          <dl class="kv" style="margin:0"><dt>Agent calls</dt><dd>≈ ${fmt(e.calls)}</dd><dt>Tokens</dt><dd>≈ ${fmt(Math.round(e.input_tokens / 1000))}K in · ${fmt(Math.round(e.output_tokens / 1000))}K out</dd>
+          <dt>Per page</dt><dd>${e.seconds_per_page}s ${e.basis === "measured" ? "(measured)" : "(typical)"}</dd><dt>Cost</dt><dd>$0 extra · counts toward your plan's usage limits</dd><dt>Writes to</dt><dd class="mono">${esc(out)}</dd></dl>
+          ${!c.force && e.reused ? `<p class="hint">Tick “Re-do pages already extracted” under Advanced to redo them.</p>` : ""}`;
+      } catch (err) { $("#estimate").innerHTML = `<div class="eyebrow">Estimate</div><div class="subtle">${esc(err.message)}</div>`; }
+    }, 250);
+  };
+  $$("#rfPages, #rfVerify, #rfWorkers, #rfVariant, #rfForce, #rfClaudeModel, #rfEffort, #rfCodexModel").forEach(el => el.addEventListener("input", update));
+  update();
+  $("#rfStart").onclick = async () => {
+    const c = cfg(); $("#rfStart").disabled = true;
+    store.set("pyq-runcfg", JSON.stringify({ engine: c.engine, verify: c.verify, verify_engine: c.verify_engine, claude_model: c.claude_model, workers: c.workers }));
+    try { const r = await api("/api/runs", { method: "POST", body: JSON.stringify(c) }); toast("Extraction started"); location.hash = `#run/${r.id}`; }
+    catch (e) { toast(e.message, true); $("#rfStart").disabled = false; }
+  };
+}
+
+/* ======================================================================
+   RUNS + RUN DETAIL
+   ====================================================================== */
+async function viewRuns() {
+  const runs = await api("/api/runs");
+  const c = (s) => runs.filter(r => r.status === s).length;
+  $("#view").innerHTML = `<div class="eyebrow">History</div><h1 class="display">Runs</h1>
+    <p class="lede">Every extraction started from this app or the command line writes a record here.</p>
+    <div class="stats">${stat("Total", fmt(runs.length))}${stat("Running", fmt(c("running")))}${stat("Done", fmt(c("done")))}${stat("Partial / failed", fmt(c("partial") + c("failed") + c("interrupted")))}</div>
+    <div style="margin-top:28px">${runsTable(runs)}</div>`;
+  bindRows();
+  if (runs.some(r => r.status === "running")) poll(() => location.hash === "#runs" && viewRuns(), 5000);
+}
+
+async function viewRun(id) {
+  const r = await api(`/api/runs/${encodeURIComponent(id)}?tail=300`);
+  const live = r.live; const tot = live.total || r.pages_total || 1;
+  const c = { ok: 0, review: 0, error: 0, cached: 0 }; live.pages.forEach(p => c[p.state]++);
+  const s = (r.summary || {}).stats || {}; const u = (r.summary || {}).usage || {};
+  const active = r.status === "running" || r.status === "queued";
+  const eng = { claude: 0, codex: 0 }; live.pages.forEach(p => { if (p.engine) eng[p.engine]++; });
+  $("#view").innerHTML = `
+    <div class="eyebrow"><a href="#runs">Runs</a> / ${esc(r.id)}</div>
+    <h1 class="display" style="font-size:clamp(28px,4vw,44px)">${esc(r.book_title || r.book)}</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${statusChip(r.status)}
+      <span class="subtle">${engineLabel(r.config.engine)}${r.config.verify ? ` · cross-check by ${r.config.verify_engine === "same" ? "the same agent" : "the other agent"}` : ""} · pages <span class="mono">${esc(r.config.pages || "all")}</span> · ${r.config.workers} in parallel · output <span class="mono">${esc(r.output)}</span></span>
+      <span style="margin-left:auto;display:flex;gap:8px">${active ? `<button class="btn danger small" id="cancelRun">Stop</button>` : ""}
+        <a class="btn small" href="#book/${r.book}/${r.output}">Book</a>${!active && s.questions ? `<a class="btn small primary" href="#review/${r.output}">Review results</a>` : ""}</span></div>
+    <div class="bar" style="height:12px;margin-top:22px">${["ok", "review", "error", "cached"].map(k => `<i class="${k}" style="width:${100 * c[k] / tot}%"></i>`).join("")}</div>
+    <div class="legend"><span><i class="ok"></i>${c.ok} extracted</span><span><i class="review"></i>${c.review} need review</span><span><i class="error"></i>${c.error} failed</span><span><i style="background:var(--ink-faint)"></i>${c.cached} reused</span>
+      <span class="subtle" style="margin-left:auto">${live.done} / ${tot} pages · ${dur(runSecs(r))} elapsed${active && live.done ? ` · about ${dur(runSecs(r) / live.done * (tot - live.done))} left` : ""}</span></div>
+    <div class="stats">
+      ${stat("Questions", s.questions != null ? fmt(s.questions) : "—", s.questions ? `${pct(s.with_solution, s.questions)}% with a solution` : active ? "after the run" : "")}
+      ${stat("Figures", s.figures_cropped != null ? fmt(s.figures_cropped) : "—")}
+      ${stat("Flagged", s.flagged != null ? fmt(s.flagged) : "—")}
+      ${stat("Pages by agent", `${eng.claude}<small>Claude</small> ${eng.codex}<small>Codex</small>`)}
+      ${stat("Agent calls", u.calls != null ? fmt(u.calls) : "—", u.calls ? `${fmt(Math.round((u.input_tokens + u.cached_input_tokens) / 1000))}K in · ${fmt(Math.round(u.output_tokens / 1000))}K out` : "")}
+    </div>
+    <h2 class="section">Pages <span class="count">latest first</span></h2>
+    ${live.pages.length ? `<div class="table-wrap" style="max-height:360px;overflow:auto"><table class="t"><thead><tr><th>Page</th><th>Result</th><th>Agent</th><th class="num">Time</th><th class="hide-sm">Detail</th></tr></thead><tbody>
+      ${live.pages.slice().reverse().map(p => `<tr><td class="mono">${p.page}</td><td>${{ ok: '<span class="chip ok">Extracted</span>', review: '<span class="chip warn">Needs review</span>', error: '<span class="chip bad">Failed</span>', cached: '<span class="chip plain">Reused</span>' }[p.state]}</td>
+        <td>${p.engine ? engineLabel(p.engine) + (p.verified_by ? ` + ${engineLabel(p.verified_by)}` : "") : "—"}</td><td class="num">${p.seconds != null ? p.seconds + "s" : "—"}</td><td class="hide-sm subtle mono">${esc(p.detail)}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">${active ? "Rendering pages and waiting for the first result…" : "No pages were processed."}</div>`}
+    <h2 class="section">Log</h2><pre class="log" id="log">${esc(r.log || "(empty)")}</pre>
+    <details class="adv" style="margin-top:14px"><summary>Command</summary><pre class="log">${esc(r.cmd.join(" "))}</pre></details>`;
+  const lg = $("#log"); lg.scrollTop = lg.scrollHeight;
+  if ($("#cancelRun")) $("#cancelRun").onclick = async () => { if (!confirm("Stop this extraction? Pages finished so far are kept, and re-running continues from there.")) return; await api(`/api/runs/${id}/cancel`, { method: "POST" }); toast("Run stopped"); viewRun(id); };
+  if (active) poll(() => location.hash === `#run/${id}` && viewRun(id).then(refreshAgentsMini), 2500);
+}
+
+/* ======================================================================
+   REVIEW (question viewer)
+   ====================================================================== */
+let RV = null;
+function md(src) {
+  if (!src) return "";
+  const stash = []; const keep = (m) => { stash.push(m); return `\u0000${stash.length - 1}\u0000`; };
+  const s = src.replace(/\$\$[\s\S]+?\$\$/g, keep).replace(/\$[^$\n]+?\$/g, keep);
+  const html = window.marked ? marked.parse(s, { breaks: true }) : esc(s).replace(/\n/g, "<br>");
+  return html.replace(/\u0000(\d+)\u0000/g, (_, i) => esc(stash[+i]));
+}
+const typeset = (el) => window.renderMathInElement && renderMathInElement(el, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }], throwOnError: false });
+const figs = (l) => l && l.length ? `<div class="figs">${l.map(u => `<div class="fig"><img src="${esc(u)}" loading="lazy" alt="figure" onclick="zoom(this.src)"></div>`).join("")}</div>` : "";
+const nFigs = (q) => (q.figures?.length || 0) + q.options.reduce((n, o) => n + (o.figures?.length || 0), 0);
+const answerOf = (q) => (q.solution && q.solution.answer) || q.answer_key || null;
+function zoom(src) { $("#zoom img").src = src; $("#zoom").style.display = "flex"; }
+$("#zoom").onclick = () => $("#zoom").style.display = "none";
+
+async function viewReview(output, qid) {
+  const books = await api("/api/books");
+  const outs = books.flatMap(b => b.outputs.filter(o => o.has_questions).map(o => ({ ...o, title: b.book.title })));
+  if (!outs.length) { $("#view").innerHTML = `<div class="eyebrow">Review</div><h1 class="display">Nothing to review yet</h1><p class="lede">Run an extraction on a book first.</p>`; return; }
+  output = output || store.get("pyq-review-out", outs[0].output);
+  if (!outs.find(o => o.output === output)) output = outs[0].output;
+  store.set("pyq-review-out", output);
+  const data = await api(`/api/outputs/${encodeURIComponent(output)}/questions`);
+  RV = { output, data, view: [], cur: null };
+  const st = data.stats || {};
+  $("#view").innerHTML = `
+    <div class="eyebrow">Review</div>
+    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:6px 0 18px">
+      <h1 class="display" style="font-size:clamp(28px,4vw,40px);margin:0">Questions</h1>
+      <select class="input" id="rvOut" style="width:auto;max-width:100%">${outs.map(o => `<option value="${o.output}" ${o.output === output ? "selected" : ""}>${esc(o.title)} — ${o.output}</option>`).join("")}</select>
+      <span class="subtle" style="margin-left:auto">${fmt(st.questions)} questions · ${fmt(st.with_solution)} with solution · ${fmt(st.with_figures)} with figures · ${fmt(st.flagged)} flagged</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <input class="input" id="rvSearch" placeholder="Search text or question number…" style="max-width:340px">
+      <div class="seg" id="rvFilter"><button data-v="all" class="on">All</button><button data-v="flagged">Flagged</button><button data-v="figures">With figures</button><button data-v="nosol">No solution</button></div>
+    </div>
+    <div class="rvgrid"><div class="qlist" id="qlist"></div><div class="qdetail" id="qdetail"></div></div>`;
+  $("#rvOut").onchange = (e) => location.hash = `#review/${e.target.value}`;
+  $("#rvSearch").oninput = renderQList;
+  $$("#rvFilter button").forEach(b => b.onclick = () => { $$("#rvFilter button").forEach(x => x.classList.toggle("on", x === b)); renderQList(); });
+  renderQList();
+  const want = qid && RV.view.find(q => q.qid === qid);
+  if (want || RV.view[0]) selectQ((want || RV.view[0]).uid);
+}
+
+function renderQList() {
+  const term = $("#rvSearch").value.trim().toLowerCase(); const f = $("#rvFilter button.on").dataset.v;
+  RV.view = RV.data.questions.filter(q => {
+    if (f === "flagged" && !q.flags.length) return false; if (f === "figures" && !nFigs(q)) return false; if (f === "nosol" && q.solution) return false;
+    if (term) { const h = `${q.qid} ${q.text} ${q.options.map(o => o.text).join(" ")} ${q.solution?.text || ""}`.toLowerCase(); if (!h.includes(term)) return false; }
+    return true;
+  });
+  let html = "", last = null;
+  for (const q of RV.view) {
+    const ch = [q.subject, q.chapter].filter(Boolean).join(" · ") || "—";
+    if (ch !== last) { html += `<div class="ch">${esc(ch)}</div>`; last = ch; }
+    html += `<div class="li ${q.uid === RV.cur ? "sel" : ""}" data-uid="${esc(q.uid)}"><div class="top">Q ${esc(q.qid ?? "?")}
+      ${nFigs(q) ? `<span class="chip plain">${nFigs(q)} fig</span>` : ""}${q.flags.length ? `<span class="chip warn">${q.flags.length} flag</span>` : ""}${q.year ? `<span class="subtle" style="font-weight:400">${q.year}</span>` : ""}</div>
+      <div class="snip">${esc(q.text.replace(/\$+/g, "").replace(/[#*|`\\]/g, " ").slice(0, 90))}</div></div>`;
+  }
+  $("#qlist").innerHTML = html || `<div class="empty">No matches</div>`;
+  $$("#qlist .li").forEach(el => el.onclick = () => selectQ(el.dataset.uid));
+}
+
+function selectQ(uid) {
+  RV.cur = uid; $$("#qlist .li").forEach(el => el.classList.toggle("sel", el.dataset.uid === uid));
+  const q = RV.data.questions.find(x => x.uid === uid); if (!q) return;
+  const ans = answerOf(q); const ok = new Set((ans || "").toLowerCase().split(/[\s,&/]+/).map(x => x.replace(/[()]/g, "")).filter(Boolean));
+  const pre = RV.data.static_prefix || `/static/${RV.output}`;
+  const pageImg = (p) => `${pre}/_work/llm_images/p${String(p).padStart(4, "0")}.jpg`;
+  const s = q.solution;
+  const el = $("#qdetail");
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" class="subtle">${esc([q.subject, q.chapter].filter(Boolean).join(" · "))}
+      <span class="chip plain">page ${q.pages.join(", ")}</span><span class="chip plain">${esc(q.question_type)}</span>${q.year ? `<span class="chip plain">${q.year}</span>` : ""}${q.marks != null ? `<span class="chip plain">${q.marks} mark${q.marks == 1 ? "" : "s"}</span>` : ""}
+      <span class="chip plain">confidence ${Math.round((q.confidence || 0) * 100)}%</span>${q.flags.map(f => `<span class="chip warn">${esc(f.replace(/_/g, " "))}</span>`).join("")}</div>
+    <h3>Question ${esc(q.qid ?? "?")}</h3>
+    <div class="qtext">${md(q.text)}</div>${figs(q.figures)}
+    ${q.options.length ? `<ul class="opts">${q.options.map(o => `<li class="opt ${ok.has(o.label.toLowerCase()) ? "correct" : ""}"><b>(${esc(o.label)})</b><div style="min-width:0"><div class="qtext">${md(o.text)}</div>${figs(o.figures)}</div></li>`).join("")}</ul>` : ""}
+    <div class="qnav">${ans ? `<span class="chip ok">Answer: ${esc(ans)}</span>` : `<span class="chip warn">No answer found</span>`}
+      ${q.answer_key && s?.answer && q.answer_key !== s.answer ? `<span class="chip warn">key says ${esc(q.answer_key)}</span>` : ""}
+      ${q.pages.map(p => `<button class="btn small" onclick="zoom('${pageImg(p)}')">Page ${p} scan</button>`).join("")}
+      ${s ? s.pages.map(p => `<button class="btn small" onclick="zoom('${pageImg(p)}')">Solution page ${p}</button>`).join("") : ""}</div>
+    ${s ? `<div class="sol"><div class="eyebrow">Solution · page ${s.pages.join(", ")}</div><div class="qtext" style="margin-top:8px">${md(s.text)}</div>${figs(s.figures)}</div>` : `<div class="sol subtle">No solution was found for this question in the extracted pages.</div>`}`;
+  typeset(el);
+}
+document.addEventListener("keydown", (e) => {
+  if (!location.hash.startsWith("#review") || !RV || ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+  const i = RV.view.findIndex(q => q.uid === RV.cur);
+  if (e.key === "ArrowDown" || e.key === "j") { e.preventDefault(); if (RV.view[i + 1]) selectQ(RV.view[i + 1].uid); }
+  if (e.key === "ArrowUp" || e.key === "k") { e.preventDefault(); if (RV.view[i - 1]) selectQ(RV.view[i - 1].uid); }
+  if (e.key === "Escape") $("#zoom").style.display = "none";
+});
+
+/* ======================================================================
+   AGENTS
+   ====================================================================== */
+async function viewAgents(refresh) {
+  const e = await api(`/api/engines${refresh ? "?refresh=1" : ""}`);
+  const runs = await api("/api/runs?limit=200");
+  const by = { claude: { runs: 0, pages: 0, calls: 0 }, codex: { runs: 0, pages: 0, calls: 0 } };
+  runs.forEach(r => { const en = r.config.engine; (en === "auto" ? ["claude", "codex"] : [en]).forEach(n => { if (by[n]) { by[n].runs++; by[n].pages += r.progress.done; } }); });
+  $("#view").innerHTML = `<div class="eyebrow">Agents</div><h1 class="display">Claude &amp; Codex</h1>
+    <p class="lede">pyq·forge drives the <code>claude</code> and <code>codex</code> command-line tools signed in on this computer, so extraction uses your subscriptions rather than API keys. Status is read from the CLIs directly — checking costs no usage.</p>
+    <div style="margin:18px 0"><button class="btn" id="refreshAgents">Re-check now</button> <span class="subtle">last checked ${ago(e.checked_at)}</span></div>
+    <div class="grid2">${["claude", "codex"].map(n => agentCard(e[n])).join("")}</div>
+    <h2 class="section">Usage through pyq·forge</h2>
+    <div class="stats">${stat("Claude runs", fmt(by.claude.runs), `${fmt(by.claude.pages)} pages processed`)}${stat("Codex runs", fmt(by.codex.runs), `${fmt(by.codex.pages)} pages processed`)}</div>
+    <h2 class="section">Good to know</h2>
+    <div class="grid2">
+      <div class="card"><h3>Usage limits</h3><p class="muted" style="margin-top:8px">Subscriptions have rolling 5-hour and weekly limits. If an agent hits its limit mid-run, the run stops with some pages failed; start it again later and only the missing pages are processed. With “Both · split pages”, the other agent carries on automatically.</p></div>
+      <div class="card"><h3>Internal use</h3><p class="muted" style="margin-top:8px">Subscription logins are for the subscriber's own work. Keep this app on this machine (it listens on 127.0.0.1 only). Serving it to other people as a product would need API keys.</p></div>
+    </div>`;
+  $("#refreshAgents").onclick = () => viewAgents(true).then(refreshAgentsMini);
+}
+
+/* boot */
+route();
+refreshAgentsMini();
+setInterval(refreshAgentsMini, 30000);
+</script>
+</body>
+</html>
