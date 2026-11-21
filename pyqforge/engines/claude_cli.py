@@ -34,7 +34,7 @@ class ClaudeCLIEngine(Engine):
         return env
 
     def _cmd(self, system_prompt: str, schema: dict) -> list[str]:
-        cmd = [self.binary, "-p",
+        cmd = [self.resolved_binary, "-p",
                "--input-format", "stream-json",
                "--output-format", "stream-json", "--verbose",
                "--json-schema", json.dumps(schema),
@@ -101,14 +101,33 @@ class ClaudeCLIEngine(Engine):
     def doctor(self) -> tuple[bool, str]:
         if not self.available():
             return False, "`claude` not found on PATH (npm i -g @anthropic-ai/claude-code)"
+        bin_path = self.resolved_binary
+        # Fast auth check: claude auth status
         try:
-            proc = subprocess.run([self.binary, "-p", "Reply with the single word OK.",
+            st_proc = subprocess.run([bin_path, "auth", "status", "--json"],
+                                     capture_output=True, text=True, timeout=15, env=self._env())
+            out = (st_proc.stdout + st_proc.stderr).strip()
+            if "{" in out:
+                st = json.loads(out[out.index("{"):])
+                if not st.get("loggedIn"):
+                    return False, "not logged in; run `claude` and /login"
+                account = st.get("email")
+                plan = st.get("subscriptionType") or st.get("planType") or "subscription"
+                info = f"ok (logged in as {account}, {plan})" if account else f"ok (logged in, {plan})"
+                return True, info
+        except (subprocess.TimeoutExpired, OSError, ValueError, json.JSONDecodeError):
+            pass
+
+        try:
+            proc = subprocess.run([bin_path, "-p", "Reply with the single word OK.",
                                    "--output-format", "json", "--tools", "",
                                    "--no-session-persistence", "--strict-mcp-config"]
                                   + (["--model", self.model] if self.model else []),
-                                  capture_output=True, text=True, timeout=120, env=self._env())
+                                  capture_output=True, text=True, timeout=30, env=self._env())
         except subprocess.TimeoutExpired:
-            return False, "claude did not answer within 120s"
+            return False, "claude did not answer within 30s"
+        except OSError as e:
+            return False, f"error running claude: {e}"
         try:
             res = json.loads(proc.stdout)
         except json.JSONDecodeError:
