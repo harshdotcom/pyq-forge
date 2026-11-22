@@ -48,18 +48,37 @@ def _engines_from_args(a) -> list:
 
 # ---------------------------------------------------------------- commands
 def cmd_doctor(a) -> int:
-    ok_all = True
-    for name in ENGINES:
+    import os
+
+    engine = getattr(a, "engine", "auto")
+    names = list(ENGINES) if engine == "auto" else [engine]
+    passed: list[str] = []
+
+    for name in names:
         eng = build_engine(name)
         ok, msg = eng.doctor()
-        ok_all &= ok
-        print(f"[{'OK' if ok else 'FAIL'}] {name}: {msg}")
-    import os
+        if ok:
+            status = "OK"
+            passed.append(name)
+        elif not eng.available():
+            status = "MISSING"
+        else:
+            status = "FAIL"
+        print(f"[{status}] {name}: {msg}")
+
     for k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "CODEX_API_KEY"):
         if os.environ.get(k):
             print(f"[note] {k} is set in your shell; pyqforge strips it from the CLI subprocess "
                   f"so the subscription login is used.")
-    return 0 if ok_all else 1
+
+    if len(passed) > 1:
+        print(f"Doctor check passed: {', '.join(passed)} are available and authenticated. Either can be used.")
+    elif len(passed) == 1:
+        print(f"Doctor check passed: {passed[0]} is available and authenticated.")
+    else:
+        print("Doctor check failed: no provider is available and authenticated.")
+
+    return 0 if passed else 1
 
 
 def cmd_inspect(a) -> int:
@@ -213,7 +232,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--version", action="version", version=__version__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("doctor", help="check claude/codex CLIs are installed and subscription-logged-in")
+    sp = sub.add_parser("doctor", help="check claude/codex CLIs are installed and subscription-logged-in")
+    sp.add_argument("--engine", choices=["claude", "codex", "auto"], default="auto",
+                    help="engine to check (default: auto = check all)")
 
     sp = sub.add_parser("inspect", help="preview figure detection (no LLM, free)")
     sp.add_argument("pdf")
